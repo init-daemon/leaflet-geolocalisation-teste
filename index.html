@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma carte Leaflet</title>
+    <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css">
+</head>
+
+<body>
+    <div id="map" style="height: 400px;"></div>
+    <input type="text" id="pays" placeholder="pays">
+    <input type="text" id="province" placeholder="province">
+    <input type="text" id="district" placeholder="district">
+    <input type="text" id="ville" placeholder="ville">
+    <button onclick="rechercherVille()">Rechercher</button>
+
+    <br>
+
+    <input type="text" id="gps-location" placeholder="position">
+    <button onclick="setPosition()">Se positionner</button>
+
+
+    <script src="node_modules/leaflet/dist/leaflet.js"></script>
+    <script src="./src/GeoLocalisation.js"></script>
+</body>
+
+</html>
+
+
+<script>
+    let map = null;
+    const GeoLoc = new GeoLocalisation();
+
+    const paysInput = document.getElementById('pays');
+    const provinceInput = document.getElementById('province');
+    const districtInput = document.getElementById('district');
+    const villeInput = document.getElementById('ville');
+    const gpsLocationInput = document.getElementById('gps-location')
+
+
+    function resetAddressInput() {
+        paysInput.value = "";
+        provinceInput.value = "";
+        districtInput.value = "";
+        villeInput.value = "";
+    }
+
+    async function rechercherVille() {
+        const nomPays = paysInput.value;
+        const nomProvince = provinceInput.value;
+        const nomDistrict = districtInput.value;
+        const nomVille = villeInput.value;
+
+        const address = [nomPays, nomProvince, nomDistrict, nomVille];
+
+        const geoLocData = await GeoLoc.getGPSPositionOfAddress(address.reverse().join(','));
+        const latlog = [geoLocData.firstLatitude, geoLocData.firstLongitude];
+        gpsLocationInput.value = latlog.toString();
+
+        GeoLoc.clearMarkers();
+
+        GeoLoc.createMarker(latlog)
+            .bindPopup(geoLocData.data[0]?.name)
+            .openPopup();
+    }
+
+    function setPosition() {
+        resetAddressInput();
+        GeoLoc.clearMarkers();
+        GeoLoc.createMarker(gpsLocationInput.value.split(","));
+    }
+
+
+    function init() {
+        let map = L.map('map');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        GeoLoc.setMap(map);
+
+        GeoLoc.getMap().on("click", (e) => {
+            gpsLocationInput.value = Object.values(e.latlng);
+            setPosition();
+        })
+    }
+
+    init();
+
+</script>
